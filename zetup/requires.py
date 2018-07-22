@@ -260,3 +260,35 @@ class Requirements(object):
 
     def __repr__(self):
         return str(self)
+
+
+def requires(reqs):
+    """
+    Create a function decorator for defining extra requirements.
+
+    :param reqs:
+        Requirement specs compatible with :class:`zetup.Requirements` 
+
+    >>> @requires("non-existing")
+    ... def func():
+    ...     pass
+
+    The actual requirements check happens only on calling the function:
+
+    >>> func()
+    Traceback (most recent call last):
+    ...
+    DistributionNotFound: zetup.requires.func() needs non-existing ...
+    """
+    reqs = Requirements(reqs)
+
+    def deco(func):
+
+        def caller(*args, **kwargs):
+            reqs.check(requirer='{}.{}()'.format(
+                func.__module__, func.__name__))
+            return func(*args, **kwargs)
+
+        return caller
+
+    return deco
