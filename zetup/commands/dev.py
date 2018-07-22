@@ -26,6 +26,7 @@ Defines ``zetup dev`` command.
 import pip
 
 from zetup.zetup import Zetup
+from zetup.pip import pip
 
 from zetup.commands.del_ import del_
 
@@ -34,12 +35,11 @@ __all__ = ['dev']
 
 @Zetup.command(depends=['setup.py'])
 def dev(zfg, args=None):
-    """Install project in develop mode.
-    """
+    """Install project in develop mode."""
     # first remove any current project installation
     del_(zfg)
     # then (re)install project in develop mode (and return pip status code)
     source = str(zfg.ZETUP_DIR)
     if zfg.EXTRAS:
         source += '[all]'
-    return pip.main(['install', '--editable', source])
+    return pip(['install', '--editable', source], raise_=False)

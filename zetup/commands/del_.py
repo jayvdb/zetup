@@ -27,30 +27,30 @@ import sys
 import os
 
 import pkg_resources
-import pip
 
 from path import Path
 
 from zetup.zetup import Zetup
 from zetup.commands.command import command
 from zetup.conda import conda
+from zetup.pip import pip
 
-__all__ = ['del_']
+__all__ = ('del_', )
 
 
 @Zetup.command(name='del')
 @command(name='del')
 def del_(zfg, args=None):
-    """Delete project from python environment.
-    """
+    """Delete project from python environment."""
     try:  # check for conda
         conda_info = conda.info()
     except OSError:  # ==> no conda
         pass
     else:
         # are we in a conda environment?
-        if any(Path(conda_info[key]).samefile(sys.prefix)
-               for key in ['root_prefix', 'default_prefix']
+        if any(
+                Path(conda_info[key]).samefile(sys.prefix)
+                for key in ['root_prefix', 'default_prefix']
         # and is project installed via conda?
         ) and conda.list('--no-pip', '--full-name', zfg.NAME):
             # then also remove it via conda
@@ -65,7 +65,7 @@ def del_(zfg, args=None):
             dist = pkg_resources.WorkingSet().by_key[zfg.NAME]
         except KeyError:  # ==> nothing left to uninstall
             break
-        status = pip.main(['uninstall', zfg.NAME, '--yes'])
+        status = pip(['uninstall', zfg.NAME, '--yes'], raise_=False)
         if status:  # ==> error
             return status
         root = Path(dist.location)

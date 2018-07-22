@@ -41,6 +41,7 @@ from .object import object, meta
 from .annotate import annotate
 from .modules import package, toplevel, extra_toplevel
 from .classpackage import classpackage
+from .pip import ZetupPipError, pip
 # import notebook subpackage for defining extra_toplevel below
 from . import notebook
 
