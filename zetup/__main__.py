@@ -25,5 +25,5 @@ from __future__ import absolute_import
 
 import zetup.script
 
-
-zetup.script.run()
+if __name__ == '__main__':
+    zetup.script.run()
