@@ -17,16 +17,33 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ('Requirements', 'DistributionNotFound', 'VersionConflict')
-
-import sys
-if sys.version_info[0] == 3:
-    unicode = str
 import re
+import sys
+from textwrap import dedent
 
 import pkg_resources
 from pkg_resources import (
     parse_requirements, Requirement, get_distribution)
+
+__all__ = (
+    'DistributionNotFound',
+    'Requirements',
+    'VersionConflict',
+    'requires',
+)
+
+
+if sys.version_info[0] == 3:
+    unicode = str
+
+
+def howto_install_requirement(req):
+    """Create a message explaining how to install `req`"""
+    return dedent("""
+    You can install the needed requirement with the following shell command:
+
+        pip install "{}"
+    """.format(req)).strip()
 
 
 class DistributionNotFound(pkg_resources.DistributionNotFound):
@@ -40,7 +57,7 @@ class DistributionNotFound(pkg_resources.DistributionNotFound):
         text = "%s needs %s" % (self.requirer, self.req)
         if self.reason:
             text += " (%s)" % self.reason
-        return text
+        return "{}\n\n{}".format(text, howto_install_requirement(self.req))
 
 
 class VersionConflict(pkg_resources.VersionConflict):
@@ -56,7 +73,7 @@ class VersionConflict(pkg_resources.VersionConflict):
             self.requirer, self.req, self.dist)
         if self.reason:
             text += " (%s)" % self.reason
-        return text
+        return "{}\n\n{}".format(text, howto_install_requirement(self.req))
 
 
 class Requirements(object):
@@ -269,7 +286,7 @@ def requires(reqs):
     :param reqs:
         Requirement specs compatible with :class:`zetup.Requirements` 
 
-    >>> @requires("non-existing")
+    >>> @requires("not-installed")
     ... def func():
     ...     pass
 
@@ -278,7 +295,11 @@ def requires(reqs):
     >>> func()
     Traceback (most recent call last):
     ...
-    DistributionNotFound: zetup.requires.func() needs non-existing ...
+    DistributionNotFound: zetup.requires.func() needs not-installed ...
+    <BLANKLINE>
+    You can install the needed requirement with the following shell command:
+    <BLANKLINE>
+        pip install "not-installed"
     """
     reqs = Requirements(reqs)
 
