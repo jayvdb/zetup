@@ -16,7 +16,7 @@ install:
 
 script:
   - # python setup.py pytest
-  - py.test -v test/
+  - py.test -vv zetup test --doctest-modules
   - # python setup.py tox
   - tox -r -v
 
