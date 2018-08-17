@@ -13,7 +13,7 @@ __all__ = ('ZetupPipError', 'pip')
 def pip(command, raise_=True):
     """
     Run a pip `command`.
-    
+
     :param command: The list of pip arguments
 
     >>> import zetup
