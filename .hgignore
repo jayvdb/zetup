@@ -1,12 +1,20 @@
 ~$
+\.diff$
 \.orig$
+\.rej$
 
 \.pyc$
+
+\.sln$
+\.suo$
+\.pyproj$
 
 ^\.ipynb
 ^\.tox/
 ^\.env/
 ^\.cache/
+^\.pytest
+^\.coverage
 
 \.egg$
 \.egg-info/
@@ -15,3 +23,7 @@
 
 ^\.venv/
 ^\.conda/
+
+^\.vs/
+^\.vscode/
+^\.idea/
