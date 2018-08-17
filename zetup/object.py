@@ -1,71 +1,107 @@
-# zetup.py
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Zimmermann's Python package setup.
+# Copyright (C) 2014-2018 Stefan Zimmermann <user@zimmermann.co>
 #
-# Copyright (C) 2014-2015 Stefan Zimmermann <zimmermann.code@gmail.com>
-#
-# zetup.py is free software: you can redistribute it and/or modify
+# ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# zetup.py is distributed in the hope that it will be useful,
+# ZETUP is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
+# along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
-"""zetup.object
-
-Basic ``object``-derived class and ``type``-derived ``meta`` class
-with some added features.
-
-.. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
 """
+Define basic :class:`zetup.object` and its :class:`zetup.meta`.
+
+For extending builtin ``object`` and ``type`` with useful extra features
+
+.. moduleauthor:: Stefan Zimmermann <user@zimmermann.co>
+"""
+from __future__ import absolute_import
+
 from itertools import chain
 
-__all__ = ['object', 'meta']
+__all__ = ('object', 'meta')
 
 
 class meta(type):
-    """Basic metaclass derived from builtin ``type``,
-       which adds a unified basic ``__dir__`` method for Python 2 and 3,
-       which always returns all member names from metaclass and class level.
+    """
+    Basic metaclass that extends builtin ``type`` with useful extra features.
+
+    Adds a unified basic ``__dir__`` method for Python 2 and 3, which always
+    returns all member names from metaclass and class level
+
+    Adds :meth:`.metamethod` and :meth:`.method` decorators for adding new
+    members to classes and their metaclasses outside of the class definition
+    scopes
     """
     if hasattr(type, '__dir__'):  # PY3
         def __dir__(cls):
             """Get all member names from class and metaclass level.
             """
-            return list(set(chain(type.__dir__(cls), dir(type(cls)))))
+            return sorted(set(chain(type.__dir__(cls), dir(type(cls)))))
 
     else:  # PY2
         def __dir__(cls):
             """Get all member names from class and metaclass level.
             """
-            return list(set(chain(
-                dir(type(cls)), *(c.__dict__ for c in cls.mro()))))
+            return sorted(set(chain(
+                dir(type(cls)),
+                *(c.__dict__ for c in cls.mro()))))
 
     @classmethod
     def metamember(mcs, obj):
-        """Decorator for adding `obj` as a member
-        to the metaclass of this class ::
+        """
+        Decorator for adding `obj` as a member to the metaclass of this class.
 
-           class Meta(zetup.meta):
-               ...
+        >>> import six  # if you want compatibility with Python 2 and 3
+        >>> import zetup
 
-           class Class(zetup.object, metaclass=Meta):
-               ...
+        This is of course only useful when you have a custom metaclass:
 
-           @Class.metamember
-           def method(cls, ...):
-               ...
+        >>> class Meta(zetup.meta):
+        ...     pass
+
+        Now you can add new members to your custom metaclass outside of the
+        class definition scope:
+
+        >>> @Meta.metamember
+        ... def method(cls, arg):
+        ...     pass
 
         >>> Meta.method
-        <function Meta.method>
+        <... Meta.method>
+
+        This also works from a new class based on this metaclass. In Python 3
+        syntax you create such a class like::
+
+            class Class(zetup.object, metaclass=Meta):
+                pass
+
+        But if you want to be compatible with Python 2 and 3:
+
+        >>> class Class(six.with_metaclass(Meta, zetup.object)):
+        ...     pass
+
+        >>> @Class.metamember
+        ... def another_method(cls, arg):
+        ...     pass
+
+        >>> Meta.another_method
+        <... Meta.another_method>
+
+        >>> Class.another_method
+        <bound method Meta.another_method of ...Class...>
+
+        And the formerly defined ``@Meta.metamember`` is of course also there:
+
         >>> Class.method
-        <bound method Meta.method of Class>
+        <bound method Meta.method of ...Class...>
         """
         if isinstance(obj, property):
             name = obj.fget.__name__
@@ -82,17 +118,26 @@ class meta(type):
         return obj
 
     def member(cls, obj):
-        """Decorator for adding `obj` as a member to this class ::
+        """
+        Decorator for adding `obj` as a member to this class.
 
-           class Class(zetup.object):
-               ...
+        >>> import zetup
 
-           @Class.member
-           def method(self, ...):
-               ...
+        >>> class Class(zetup.object):
+        ...     pass
+
+        Now you can add new members to your class outside of the class
+        definition scope:
+
+        >>> @Class.member
+        ... def method(self, arg):
+        ...     pass
 
         >>> Class.method
-        <function Class.method>
+        <... Class.method>
+
+        >>> Class().method
+        <bound method Class.method of ...Class...>
         """
         if isinstance(obj, property):
             name = obj.fget.__name__
@@ -109,18 +154,28 @@ class meta(type):
         return obj
 
 
-# PY2/3 compatible way to create class `object` with metaclass `meta`
+# PY2/3 compatible way to create class `object` with metaclass `meta`...
+
 clsattrs = {
     '__doc__':
-    """Basic class derived from builtin ``object``,
-       which adds a basic ``__dir__`` method for Python 2.
+    """
+    Basic class that extends builtin ``object`` with useful extra features.
+
+    Adds a basic ``__dir__`` method for Python 2
+
+    Has :class:`zetup.meta` as metaclass and therefore provides
+    :meth:`zetup.meta.metamethod` and :meth:`zetup.meta.method` decorators for
+    adding new members to classes and their metaclasses outside of the class
+    definition scopes
     """}
+
 if not hasattr(object, '__dir__'):
+
     def __dir__(self):
-        """Get all member names from instance and class level.
-        """
-        return list(set(chain(
-            self.__dict__, *(c.__dict__ for c in type(self).mro()))))
+        """Get all member names from instance and class level."""
+        return sorted(set(chain(
+            self.__dict__,
+            *(c.__dict__ for c in type(self).mro()))))
 
     clsattrs['__dir__'] = __dir__
 
