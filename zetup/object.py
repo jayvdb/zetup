@@ -75,7 +75,7 @@ class meta(type):
         ...     pass
 
         >>> Meta.method
-        <... Meta.method>
+        <... Meta.method...>
 
         This also works from a new class based on this metaclass. In Python 3
         syntax you create such a class like::
@@ -93,7 +93,7 @@ class meta(type):
         ...     pass
 
         >>> Meta.another_method
-        <... Meta.another_method>
+        <... Meta.another_method...>
 
         >>> Class.another_method
         <bound method Meta.another_method of ...Class...>
@@ -134,7 +134,7 @@ class meta(type):
         ...     pass
 
         >>> Class.method
-        <... Class.method>
+        <... Class.method...>
 
         >>> Class().method
         <bound method Class.method of ...Class...>
