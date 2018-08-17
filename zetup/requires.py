@@ -292,10 +292,10 @@ def requires(reqs):
 
     The actual requirements check happens only on calling the function:
 
-    >>> func()
+    >>> func()  # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
-    ...DistributionNotFound: zetup.requires.func() needs not-installed ...
+    DistributionNotFound: ...func() needs not-installed ...
     <BLANKLINE>
     You can install the needed requirement with the following shell command:
     <BLANKLINE>
