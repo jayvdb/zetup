@@ -196,20 +196,21 @@ class Requirements(object):
 
                 return False
 
-            if not req.specs: # No version constraints
+            if not req.specs:  # No version constraints
                 continue
 
             try:
                 version = mod.__version__
-                if version is None:
+                if version is None or version == 'unknown':
                     # treat the same as if .__version__ not exists
                     # (handle in following except block)
                     # ==> same exception, just different msg
                     raise AttributeError(
-                        "module's '__version__' attribute is None")
+                        "module's '__version__' attribute is {!r}"
+                        .format(version))
 
             except AttributeError as e_no__version__attr:
-                try: # try to get version from distribution
+                try:  # try to get version from distribution
                     dist = get_distribution(req.key)
                 except pkg_resources.DistributionNotFound as e:
                     if raise_:
