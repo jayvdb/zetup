@@ -1,6 +1,6 @@
 # ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Copyright (C) 2014-2018 Stefan Zimmermann <user@zimmermann.co>
+# Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
 # ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -22,9 +22,13 @@ For extending builtin ``object`` and ``type`` with useful extra features
 
 .. moduleauthor:: Stefan Zimmermann <user@zimmermann.co>
 """
+
 from __future__ import absolute_import
 
+import sys
 from itertools import chain
+
+import zetup
 
 __all__ = ('object', 'meta')
 
@@ -42,17 +46,14 @@ class meta(type):
     """
     if hasattr(type, '__dir__'):  # PY3
         def __dir__(cls):
-            """Get all member names from class and metaclass level.
-            """
+            """Get all member names from class and metaclass level."""
             return sorted(set(chain(type.__dir__(cls), dir(type(cls)))))
 
     else:  # PY2
         def __dir__(cls):
-            """Get all member names from class and metaclass level.
-            """
+            """Get all member names from class and metaclass level."""
             return sorted(set(chain(
-                dir(type(cls)),
-                *(c.__dict__ for c in cls.mro()))))
+                dir(type(cls)), *(c.__dict__ for c in cls.mro()))))
 
     @classmethod
     def metamember(mcs, obj):
@@ -153,12 +154,25 @@ class meta(type):
         setattr(cls, name, obj)
         return obj
 
+    def __str__(cls):
+        clsname = getattr(cls, '__qualname__', cls.__name__)
+        modname = getattr(cls, '__package__', cls.__module__)
+        return '.'.join((modname, clsname))
+
+    def __repr__(cls):
+        """Create PY2/3 unified PY3-style representation."""
+        return "<class {!r}>".format(str(cls))
+
 
 # PY2/3 compatible way to create class `object` with metaclass `meta`...
 
+def __repr__(self):
+    """Create PY2/3-unified PY3-style representation."""
+    return "<{} at {}>".format(type(self), hex(id(self)).rstrip('L'))
+
 clsattrs = {
-    '__doc__':
-    """
+    '__package__': zetup.__name__,
+    '__doc__': """
     Basic class that extends builtin ``object`` with useful extra features.
 
     Adds a basic ``__dir__`` method for Python 2
@@ -167,7 +181,8 @@ clsattrs = {
     :meth:`zetup.meta.metamethod` and :meth:`zetup.meta.method` decorators for
     adding new members to classes and their metaclasses outside of the class
     definition scopes
-    """}
+    """,
+    '__repr__': __repr__}
 
 if not hasattr(object, '__dir__'):
 
