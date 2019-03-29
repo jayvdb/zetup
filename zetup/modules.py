@@ -1,45 +1,44 @@
-# zetup.py
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Zimmermann's Python package setup.
+# Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
-# Copyright (C) 2014-2015 Stefan Zimmermann <zimmermann.code@gmail.com>
-#
-# zetup.py is free software: you can redistribute it and/or modify
+# ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# zetup.py is distributed in the hope that it will be useful,
+# ZETUP is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
+# along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
 """
-zetup.modules
+Several ``module`` object wrappers.
 
-Module object wrappers for packages, top-level packages, and top-level
-packages for extra features
+For modules, packages, top-level packages, and top-level packages for extra
+features
 
 .. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
 """
+
 from __future__ import absolute_import
 
-__all__ = ['package', 'toplevel']
-
 import sys
-from warnings import warn
 from importlib import import_module
 from inspect import ismodule
-from types import ModuleType
 from itertools import chain
+from types import ModuleType
+from warnings import warn
 
 import zetup
 from .object import object, meta
 from .annotate import annotate, annotate_extra
 from .doc import AutoDocScopeModule
+
+__all__ = ('package', 'toplevel')
 
 
 class deprecated(str):
@@ -56,7 +55,7 @@ class package(ModuleType, object):
     """
     Package module object wrapper.
 
-    For clean dynamic API import from sub-modules
+    Providing clean dynamic API imports from sub-modules
     """
     __module__ = __package__
 
