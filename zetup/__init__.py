@@ -39,6 +39,7 @@ from .resolve import resolve
 from .process import Popen, call
 from .object import object, meta
 from .annotate import annotate
+from .func import apifunction
 from .modules import package, toplevel, extra_toplevel
 from .classpackage import classpackage
 from .pip import ZetupPipError, pip
@@ -52,7 +53,7 @@ zetup = toplevel(__name__, [
     'resolve', 'DistributionNotFound', 'VersionConflict',
     'Popen', 'call',
     'object', 'meta',
-    'annotate', 'package', 'toplevel', 'extra_toplevel',
+    'annotate', 'apifunction', 'package', 'toplevel', 'extra_toplevel',
 ], check_requirements=False)
 
 # can't be defined in .notebook subpackage
