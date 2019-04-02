@@ -26,6 +26,7 @@ For extending builtin ``object`` and ``type`` with useful extra features
 from __future__ import absolute_import
 
 import sys
+from inspect import ismodule
 from itertools import chain
 
 import zetup
@@ -156,8 +157,10 @@ class meta(type):
 
     def __str__(cls):
         clsname = getattr(cls, '__qualname__', cls.__name__)
-        modname = getattr(cls, '__package__', cls.__module__)
-        return '.'.join((modname, clsname))
+        mod = getattr(cls, '__package__', cls.__module__)
+        if ismodule(mod):  # and not just a string
+            mod = mod.__name__
+        return '.'.join((mod, clsname))
 
     def __repr__(cls):
         """Create PY2/3 unified PY3-style representation."""
@@ -171,7 +174,7 @@ def __repr__(self):
     return "<{} at {}>".format(type(self), hex(id(self)).rstrip('L'))
 
 clsattrs = {
-    '__package__': zetup.__name__,
+    '__package__': zetup,
     '__doc__': """
     Basic class that extends builtin ``object`` with useful extra features.
 
