@@ -21,13 +21,41 @@
 
 .. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
 """
+
 import sys
 from importlib import import_module
+from inspect import ismodule
 from types import ModuleType
 
 import zetup
 
+__all__ = ('AutoDocScopeImporter', )
+
 # zetup.package(__name__, ['AutoDocScopeImporter'])
+
+
+class EndlessRecursionError(RuntimeError):
+    pass
+
+
+def prevent_endless_recursion(func):
+    func.call_stack = []
+
+    def caller(*args, **kwargs):
+        if (args, kwargs) in func.call_stack:
+            raise EndlessRecursionError(
+                "{!r} was called recusively again with args {!r} and "
+                "keyword args {!r}".format(func, args, kwargs))
+
+        func.call_stack.append((args, kwargs))
+        try:
+            result = func(*args, **kwargs)
+        finally:
+            assert func.call_stack[-1] == (args, kwargs)
+            func.call_stack.pop(-1)
+        return result
+
+    return caller
 
 
 class AutoDocScopeModule(ModuleType):
@@ -63,13 +91,25 @@ class AutoDocScopeImporter(object):
 
     def find_module(self, name, path):
         if name.startswith(self.package.__name__ + '.'):
-            return self
+            try:
+                if self.load_module(name) is not None:
+                    return self
 
+            except EndlessRecursionError:
+                pass
+
+    @prevent_endless_recursion
     def load_module(self, name):
         assert name.startswith(self.package.__name__ + '.')
         scope = scopemod = self.package
         for attr in name[len(self.package.__name__) + 1:].split('.'):
-            scope = getattr(scope, attr)
+            scope = getattr(scope, attr, None)
+            if scope is None:
+                return None
+
+            if ismodule(scope):
+                return scope
+
             scopemod = AutoDocScopeModule(
                 '%s.%s' % (scopemod.__name__, attr), scope)
             scopemod.__path__ = None
