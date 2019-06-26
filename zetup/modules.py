@@ -1,4 +1,4 @@
-# ZETUP | Zimmermann's Extensible Tools for Unified Project_setups
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
 # Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
@@ -27,6 +27,7 @@ features
 from __future__ import absolute_import
 
 import sys
+from collections import MutableMapping
 from importlib import import_module
 from inspect import ismodule
 from itertools import chain
@@ -38,27 +39,46 @@ from .object import object, meta
 from .annotate import annotate, annotate_extra
 from .doc import AutoDocScopeModule
 
-__all__ = ('package', 'toplevel')
+__all__ = ('extra_toplevel', 'module', 'package', 'toplevel')
+
+
+class module__dict__(dict):
+
+    __base__ = None
+
+    def items(self):
+        if self.__base__ is None:
+            return dict.items(self)
+
+        return chain(dict.items(self), self.__base__.items())
+
+
+MODULE__DICT__CACHE = {}
 
 
 class deprecated(str):
     """
     Simple ``str`` class wrapper for indicating deprecation.
 
-    Marks a :class:`zetup.package` API member (alias) name as deprecated
+    Marks a :class:`zetup.module` API member (alias) name as deprecated
     """
+
     def __repr__(self):
         return "deprecated(%s)" % str.__repr__(self)
 
 
-class package(ModuleType, object):
+class module(ModuleType, object):
     """
-    Package module object wrapper.
+    Basic module object wrapper.
 
-    Providing clean dynamic API imports from sub-modules
+    Providing clean dynamic API imports from modules
     """
 
     __package__ = zetup
+
+    @property
+    def __dict__(self):
+        return MODULE__DICT__CACHE.setdefault(self, module__dict__())
 
     def __init__(
             self, name, __all__=None,
@@ -82,6 +102,10 @@ class package(ModuleType, object):
         mod = sys.modules[name]
         ModuleType.__init__(  # pylint: disable=no-member
             self, name, mod.__doc__)
+
+        __dict__ = MODULE__DICT__CACHE.setdefault(self, module__dict__())
+        __dict__.__base__ = mod.__dict__
+
         self.__name__ = name
         self.__module__ = mod
         sys.modules[name] = self
@@ -110,9 +134,9 @@ class package(ModuleType, object):
         func = cls.__getitem__.funcs.get(self)
         if func is None:
             raise TypeError(
-                "%s is not subscriptable. "
-                "Instantiate %s with __getitem__=<func> to change that."
-                % (repr(self), repr(cls)))
+                "{!r} is not subscriptable. "
+                "Instantiate {!r} with __getitem__=<func> to change that."
+                .format(self, cls))
 
         return func(key)
 
@@ -123,9 +147,9 @@ class package(ModuleType, object):
         func = cls.__iter__.funcs.get(self)
         if func is None:
             raise TypeError(
-                "%s is not iterable. "
-                "Instantiate %s with __iter__=<func> to change that."
-                % (repr(self), repr(cls)))
+                "{!r} is not iterable. "
+                "Instantiate {!r} with __iter__=<func> to change that."
+                .format(self, cls))
 
         return func()
 
@@ -136,9 +160,9 @@ class package(ModuleType, object):
         func = cls.__call__.funcs.get(self)
         if func is None:
             raise TypeError(
-                "%s is not callable. "
-                "Instantiate %s with __call__=<func> to change that."
-                % (repr(self), repr(cls)))
+                "{!r} is not callable. "
+                "Instantiate {!r} with __call__=<func> to change that."
+                .format(self, cls))
 
         return func(*args, **kwargs)
 
@@ -173,6 +197,7 @@ class package(ModuleType, object):
         if name.startswith('__'):
             try:
                 return object.__getattribute__(self, name)
+
             except AttributeError:
                 pass
 
@@ -190,30 +215,19 @@ class package(ModuleType, object):
 
         except AttributeError:
             try:  # then from wrapper module
-                obj = self.__dict__[name]
+                if name in type(self).__dict__:
+                    return object.__getattribute__(self, name)
+
+                return self.__dict__[name]
+
             except KeyError:
                 if name in getattr(self.__module__, '__all__', ()):
                     raise AttributeError(
-                        "%s has no attribute %s although listed in __all__"
-                        % (repr(self.__module__), repr(name)))
+                        "{!r} has no attribute {!r} although listed in "
+                        "__all__".format(self.__module__, name))
 
-            try:  # and finally try to find a matching submodule
-                # sys.modules[self.__name__] = self.__module__
-                # __import__('ipdb').set_trace()
-                obj = import_module('%s.%s' % (self.__name__, name))
-            except ImportError as exc:
-                raise AttributeError(
-                    "%s has no attribute %s" % (repr(self), repr(name)))
-
-            # finally:
-            #     sys.modules[self.__name__] = self
-
-        if isinstance(obj, zetup.classpackage):
-            classobj = getattr(obj, name)
-            setattr(self, name, classobj)
-            return classobj
-
-        return obj
+        raise AttributeError(
+            "{!r} has no attribute {!r}".format(self, name))
 
     def __dir__(self):
         """Additionally get all API member names."""
@@ -232,9 +246,6 @@ class package(ModuleType, object):
                     yield name
 
         return list(chain(
-            # (
-            #     name for name in self.__module__.__dict__
-            #     if name.startswith('__')),
             set(
                 object.__dir__(self)  # pylint: disable=no-member
             ).difference(exclude()),
@@ -245,6 +256,32 @@ class package(ModuleType, object):
         return "<%s %s from %s>" % (
             type(self).__name__, repr(self.__name__),
             repr(self.__module__.__file__))
+
+
+class package(module):
+    """
+    Package module object wrapper.
+
+    Providing clean dynamic API imports from sub-modules
+    """
+
+    def __getattribute__(self, name):
+        try:
+            obj = super(package, self).__getattribute__(name)
+
+        except AttributeError as exc:
+            try:  # try to find a matching submodule
+                obj = import_module('%s.%s' % (self.__name__, name))
+            except ImportError:
+                raise AttributeError(
+                    "%s has no attribute %s" % (repr(self), repr(name)))
+
+        if isinstance(obj, zetup.classpackage):
+            classobj = getattr(obj, name)
+            setattr(self, name, classobj)
+            return classobj
+
+        return obj
 
 
 class toplevel(package):
