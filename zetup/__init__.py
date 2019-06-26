@@ -40,8 +40,9 @@ from .process import Popen, call
 from .object import object, meta
 from .annotate import annotate
 from .func import apifunction
-from .modules import package, toplevel, extra_toplevel
+from .modules import module, package, toplevel, extra_toplevel
 from .classpackage import classpackage
+from .zfg import ZFG_PARSER, ZFGData, ZFGFile, ZFGParser, parse_zfg
 from .pip import ZetupPipError, pip
 # import notebook subpackage for defining extra_toplevel below
 from . import notebook
@@ -50,11 +51,18 @@ from . import notebook
 zetup = toplevel(__name__, [
     'Zetup', 'find_zetup_config',
     'ZetupError', 'ZetupConfigNotFound',
+    'ZFG_PARSER', 'ZFGFile', 'ZFGData', 'parse_zfg',
     'resolve', 'DistributionNotFound', 'VersionConflict',
     'Popen', 'call',
     'object', 'meta',
-    'annotate', 'apifunction', 'package', 'toplevel', 'extra_toplevel',
+    'annotate', 'apifunction',
+    'module', 'package', 'toplevel', 'extra_toplevel',
+    'program', 'with_arguments',
 ], check_requirements=False)
+
+
+from .program import program, with_arguments
+
 
 # can't be defined in .notebook subpackage
 # because .notebook is also needed to load zetup's own config
@@ -81,8 +89,8 @@ def setup_entry_point(dist, keyword='use_zetup', value=True):
 
     from .zetup import Zetup
     # read config from current working directory (where setup.py is run)
-    zetup = Zetup()
-    keywords = zetup.setup_keywords()
+    zfg = Zetup()
+    keywords = zfg.setup_keywords()
     for name, value in keywords.items():
         # generally, setting stuff on dist.metadata is enough (and necessary)
         setattr(dist.metadata, name, value)
@@ -92,7 +100,7 @@ def setup_entry_point(dist, keyword='use_zetup', value=True):
         if name.startswith('package') or name.endswith('requires'):
             setattr(dist, name, value)
 
-    if zetup.in_repo:
+    if zfg.in_repo:
         # resolve requirements for zetup make
         resolve(['zetup[commands]>={}'.format(
             __import__('zetup').__version__)])
@@ -101,12 +109,12 @@ def setup_entry_point(dist, keyword='use_zetup', value=True):
         # make necessary files and store make result in distribution object,
         # so that files can be removed by del dist.zetup_made after setup()
         make_targets = ['VERSION', 'setup.py', 'zetup_config']
-        dist.zetup_made = zetup.make(targets=make_targets)
+        dist.zetup_made = zfg.make(targets=make_targets)
 
     # finally run any custom setup hooks defined in project's zetup config
-    if zetup.SETUP_HOOKS:
+    if zfg.SETUP_HOOKS:
         sys.path.insert(0, '.')
-        for hook in zetup.SETUP_HOOKS:
+        for hook in zfg.SETUP_HOOKS:
             modname, funcname = hook.split(':')
             mod = __import__(modname)
             for subname in modname.split('.')[1:]:
