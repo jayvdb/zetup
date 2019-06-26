@@ -1,30 +1,37 @@
-# zetup.py
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Zimmermann's Python package setup.
+# Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
-# Copyright (C) 2014-2015 Stefan Zimmermann <zimmermann.code@gmail.com>
-#
-# zetup.py is free software: you can redistribute it and/or modify
+# ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# zetup.py is distributed in the hope that it will be useful,
+# ZETUP is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
+# along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ['load_zetup_config']
-
-import sys
 import os
 import re
-from textwrap import dedent
+import sys
 from collections import OrderedDict
+from textwrap import dedent
 from warnings import warn
+
+from .error import ZetupError
+from .extras import Extras
+from .dist import Distribution
+from .notebook import Notebook
+from .object import object, meta
+from .package import Packages
+from .requires import Requirements
+from .resolve import resolve
+from .version import Version
+
 if sys.version_info[0] == 3:
     from configparser import ConfigParser
     # Just for simpler PY2/3 compatible code:
@@ -32,14 +39,7 @@ if sys.version_info[0] == 3:
 else:
     from ConfigParser import ConfigParser
 
-from .version import Version
-from .requires import Requirements
-from .extras import Extras
-from .dist import Distribution
-from .package import Packages
-from .notebook import Notebook
-from .resolve import resolve
-from .error import ZetupError
+__all__ = ('load_zetup_config', )
 
 
 TRUE = True, 'true', 'yes'
