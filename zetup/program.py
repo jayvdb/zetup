@@ -68,9 +68,9 @@ class program(ArgumentParser, object):
 
     def __init__(self, arguments, **kwargs):
         """
-        Pepare the decorator with a :class:`zetup.with_arguments` object.
+        Prepare the decorator with a :class:`zetup.with_arguments` object.
 
-        All ``kwargs`` are delegated to the ``ArgumentParser`` base construtor
+        All `kwargs` are delegated to the ``ArgumentParser`` base constructor
         """
         ArgumentParser.__init__(self, **kwargs)
         for args, kwargs in arguments:
