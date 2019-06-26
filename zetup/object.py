@@ -45,6 +45,12 @@ class meta(type):
     members to classes and their metaclasses outside of the class definition
     scopes
     """
+
+    def __init__(cls, clsname, bases, clsattrs):
+        super(meta, cls).__init__(clsname, bases, clsattrs)
+        if '__package__' not in clsattrs:
+            cls.__package__ = None
+
     if hasattr(type, '__dir__'):  # PY3
         def __dir__(cls):
             """Get all member names from class and metaclass level."""
@@ -157,9 +163,12 @@ class meta(type):
 
     def __str__(cls):
         clsname = getattr(cls, '__qualname__', cls.__name__)
-        mod = getattr(cls, '__package__', cls.__module__)
-        if ismodule(mod):  # and not just a string
-            mod = mod.__name__
+        mod = getattr(cls, '__package__', None) or cls.__module__
+        if ismodule(mod):  # (and not just a string)
+            mod = mod.__name__  # pylint: disable=no-member
+        elif mod is None:
+            return clsname
+
         return '.'.join((mod, clsname))
 
     def __repr__(cls):
