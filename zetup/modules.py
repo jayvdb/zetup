@@ -187,8 +187,7 @@ class module(ModuleType, object):
                 not isinstance(value, package)):
             return
 
-        from .classpackage import classpackage
-        if isinstance(value, classpackage):
+        if isinstance(value, zetup.class_package):
             value = getattr(value, name)
         object.__setattr__(self, name, value)
 
@@ -201,8 +200,15 @@ class module(ModuleType, object):
             except AttributeError:
                 pass
 
-        # check if name is defined as alias
-        realname = self.__dict__['__all__'].get(name)
+        # get actual API key object corresponding to given name...
+        for alias, realname in self.__dict__['__all__'].items():
+            if name == alias:
+                name = alias
+                break
+        else:
+            realname = None
+
+        # ... to check if name is defined as alias
         if realname is not None:
             if isinstance(name, deprecated):
                 warn("%s.%s is deprecated in favor of %s.%s" % (
@@ -265,6 +271,8 @@ class package(module):
     Providing clean dynamic API imports from sub-modules
     """
 
+    __package__ = zetup
+
     def __getattribute__(self, name):
         try:
             obj = super(package, self).__getattribute__(name)
@@ -276,7 +284,7 @@ class package(module):
                 raise AttributeError(
                     "%s has no attribute %s" % (repr(self), repr(name)))
 
-        if isinstance(obj, zetup.classpackage):
+        if isinstance(obj, zetup.class_package):
             classobj = getattr(obj, name)
             setattr(self, name, classobj)
             return classobj
