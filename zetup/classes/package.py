@@ -75,7 +75,7 @@ class class_package(zetup.package):
     >>> Class
     <class 'zetup.classes.test.Class'>
     >>> Class.method
-    <... Class.method>
+    <... Class.method...>
     """
 
     __package__ = zetup
