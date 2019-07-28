@@ -41,7 +41,7 @@ from .object import object, meta
 from .annotate import annotate
 from .func import apifunction
 from .modules import module, package, toplevel, extra_toplevel
-from .classpackage import classpackage
+from .classes import class_package, class_member_module
 from .zfg import ZFG_PARSER, ZFGData, ZFGFile, ZFGParser, parse_zfg
 from .pip import ZetupPipError, pip
 # import notebook subpackage for defining extra_toplevel below
@@ -57,8 +57,11 @@ zetup = toplevel(__name__, [
     'object', 'meta',
     'annotate', 'apifunction',
     'module', 'package', 'toplevel', 'extra_toplevel',
+    'class_package', 'class_member_module',
     'program', 'with_arguments',
-], check_requirements=False)
+], deprecated_aliases={
+    'classpackage': 'class_package',
+}, check_requirements=False)
 
 
 from .program import program, with_arguments
