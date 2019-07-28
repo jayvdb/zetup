@@ -35,7 +35,7 @@ try:
         {%- endblock %}
     )
 finally:
-    if dist is not None:
+    if dist is not None and hasattr(dist, 'zetup_made'):
         del dist.zetup_made
 {%- endblock %}
 {% block post_setup %}{% endblock %}
