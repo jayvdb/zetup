@@ -17,32 +17,39 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
 
-"""zetup.test_classpackage
-
-pytest unit tests for :class:`zetup.classpackage`.
+"""
+Test :class:`zetup.class_package`.
 
 .. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
 """
+
 from __future__ import absolute_import
+
+import pytest
 
 import zetup
 
 
+def test_deprecated_name():
+    with pytest.warns(DeprecationWarning):
+        assert zetup.classpackage is zetup.class_package
+
+
 def test_bases():
     for base in [zetup.object, zetup.package]:
-        assert issubclass(zetup.classpackage, base)
+        assert issubclass(zetup.class_package, base)
     for nobase in [zetup.toplevel]:
-        assert not issubclass(zetup.classpackage, nobase)
+        assert not issubclass(zetup.class_package, nobase)
 
 
 def test_metabases():
-    assert type(zetup.classpackage) is zetup.meta
+    assert type(zetup.class_package) is zetup.meta
 
 
-def test__module__():
-    assert zetup.classpackage.__module__ == 'zetup'
+def test__repr__():
+    assert repr(zetup.class_package) == "<class 'zetup.class_package'>"
 
 
 def test_members():
     # should not contain more members than basic zetup.package
-    assert dir(zetup.classpackage) == dir(zetup.package)
+    assert dir(zetup.class_package) == dir(zetup.package)
