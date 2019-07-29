@@ -19,9 +19,7 @@ install:
 
 script:
   - # python setup.py pytest
-  - >-
-    py.test -vv --doctest-modules zetup
-        test --cov zetup --cov test --cov-report term-missing
+  - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
   - # python setup.py tox
   - tox -r -v
 
