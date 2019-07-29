@@ -42,7 +42,7 @@ def howto_install_requirement(req):
     return dedent("""
     You can install the needed requirement with the following shell command:
 
-        pip install "{}"
+        python -m pip install "{}"
     """.format(req)).strip()
 
 
