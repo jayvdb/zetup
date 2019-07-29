@@ -11,14 +11,17 @@ python:
   - pypy
 
 install:
-  - pip install pip setuptools --upgrade
-  - pip install -r requirements.txt
-  - pip install -e .[all]
-  - pip install tox tox-travis
+  - pip install -U pip setuptools
+  - pip install -U -r requirements.txt
+  - pip install -U -e .[all]
+  - pip install -U -r test-requirements.txt
+  - pip install -U tox tox-travis
 
 script:
   - # python setup.py pytest
-  - py.test -vv zetup test --doctest-modules
+  - >-
+    py.test -vv --doctest-modules zetup test
+        --cov zetup --cov test --cov-report term-missing
   - # python setup.py tox
   - tox -r -v
 
@@ -26,6 +29,6 @@ deploy:
   provider: pypi
   user: userzimmermann
   password:
-    secure: joxW8Q5vKhvoulK4hj2wDzWrW5RazZn+nFaKDqwxXsTGffC+8YrhL8Z+zKgn6tlh7pOYnni35pA9iMW6UasUIop/Zblt4ZqKQVTWlbQfBEp8pxXniWIvJtIdjMFIkmtDu57VsEKwcrY5bBmzDoy0GRjtRJIMyRS0vGMj6MgwZaz1A/YT3spr8AWnvXsOcUVexO7Jde6JuDsmiBrddRqaVmxRcNRAprmdLuqcDPG2lCKbUr4ZfwqDsA0gMc6uT1Kgt9Hq9qhT8iwx9+Fio5SJeOfbWH1j1ddXTpZRmuvc0utEiVzKYV6VDQbNS88dJet2PCy8FDOYEZ/uNYJdwZ0yeZdrNgCudeRKxE1gazwiealCzLFMejH0BUf4/7erEllzXRzeLpUtGiZW08rd6gRm9FCe8bE8pkDcTEHmUL96kA1dfKwAufCLOWMGvvz/YasJC2SZhml1n/5FeCPEsURNYV44Uyki5pOekwC/zwb646Se0ZYqskkl9m91nVvfIOJWaEZwzoru/UCnNJ9yiYP2pEJYuACZV6ZYXR6jT+ZW/8QZVqQbjSgLlETaUjW3kudaC73FxMmwrWAIP7PenYeBcgHLEiv3uDYlPKJLmvgvtOYmFS7wBdFJgXLKZxUnvBC83FSiFxR75OCDxLgMc9heH/UaccRwzbKYw9tqNw7/wV8=
+    secure: mi8aEoVh9/xpg+Kf6S7hJZDPkN4/+8vQYxvlK9GpjgmNfRcYBRWBr+uE+lFo/RsRZMK4QMqd8t++6lAC1WV0BhnMfhbbP2Zb+8VpD/XbfzYen9HI0bfHsOhn/N4+cSPqipqXKQY6WDvtxFzqVxJFMRygT1X38t8LhZTR3xaRTU0//uX5OEvYVgu7pLIJMgJ5Aea8zWCvNJ0bP0F/994zgPl+34+bcDiGqQqPMLFz5P1b82shj7kMgBJKCsA7haX51I9F/l+8X/P3rSjsJ/OUt0Tq4cRTClU1VoE3ZW8Nhgp77+rK5pRcRid02AsEjUuhwZKLapda462bo5pttF6cxR9caSHgMDxo7sUApstWSG8ohuR0ghzMS03AIvFJwLlXtWalVDBcj042Hxbjs5GHiscs03D1o+fWlt8C6niHEloIYThg3B4d48SKb3hC5eZhlVEOVgHYJijrftEiUKXmU2r6mtF3EG/P2PRjP1rhKN+FG4+XmOnWSSPeP7I3knIByweZYAguvBWj5ih7zIj6696qX2OaMCVzas/bfZHd5Hq/LMdifk+t7mU538opym9L+MEr2fsO/lgqJTiL0+kbO+WQhwBzpM7CEuevTHcBI0GYmunxWLfoYR1ltDMQdAGW2T7//sqqk+XmkRS0ul9vh/b33VOsDkdCHke4Y4MTln4=
   on:
     python: '2.7'
