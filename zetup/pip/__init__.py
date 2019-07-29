@@ -9,7 +9,7 @@ from .errors import ZetupPipError
 __all__ = ('ZetupPipError', 'pip')
 
 
-@requires("pip >= 19.0")
+@requires("pip >= 19.1")
 def pip(command, raise_=True):
     """
     Run a pip `command`.
