@@ -54,8 +54,10 @@ class ZetupConfigNotFound(ZetupError):
 
 
 def load_zetup_config(path, zfg):
-    """Load zetup config from directory in `path`
-       and store keywords as attributes to `zfg` object.
+    """
+    Load zetup config from directory in `path`.
+
+    Then process and store config parameters as attributes to `zfg` object
     """
     zfg.ZETUP_DIR = path
 
@@ -64,26 +66,27 @@ def load_zetup_config(path, zfg):
     for fname in CONFIG_FILE_NAMES:
         zfg.ZETUP_FILE = os.path.join(zfg.ZETUP_DIR, fname)
         if config.read(zfg.ZETUP_FILE):
-            ##TODO: No print if run from installed package (under pkg/zetup/):
-            ## print("zetup: Using config from %s" % fname)
+            # TODO: No print if run from installed package (under pkg/zetup/):
+            # print("zetup: Using config from %s" % fname)
 
             # The config file will be installed as pkg.zetup package_data:
             zfg.ZETUP_DATA = [fname]
             break
     else:
         raise ZetupConfigNotFound(
-          "No zetup config file found in %s" % repr(path)
-          + " (need %s)" % " or ".join([
-            ", ".join(map(repr, CONFIG_FILE_NAMES[:-1])),
-            repr(CONFIG_FILE_NAMES[-1])]))
+            "No zetup config file found in %s" % repr(path) +
+            " (need %s)" % " or ".join([
+                ", ".join(map(repr, CONFIG_FILE_NAMES[:-1])),
+                repr(CONFIG_FILE_NAMES[-1])]))
 
-    #... and store all setup options in UPPERCASE vars...
+    # ... and store all setup options in UPPERCASE vars...
     zfg.NAME = config.sections()[0]
 
     # get a section dictionary with normalized option names as keys
     # and stripped value strings
-    config = {re.sub(r'[^a-z0-9]', '', option.lower()): value.strip()
-              for option, value in config.items(zfg.NAME)}
+    config = {
+        re.sub(r'[^a-z0-9]', '', option.lower()): value.strip()
+        for option, value in config.items(zfg.NAME)}
 
     zfg.TITLE = config.get('title', zfg.NAME)
     zfg.DESCRIPTION = config.get('description', '').replace('\n', ' ')
@@ -98,7 +101,7 @@ def load_zetup_config(path, zfg):
 
     zfg.LICENSE = config.get('license')
 
-    zfg.PYTHON = config.get('python', '').split()
+    zfg.PYTHON = sorted(map(Version, config.get('python', '').split()))
 
     zfg.PACKAGES = config.get(
         'packages', Packages([], root=zfg.ZETUP_DIR, zfg=zfg))
@@ -182,10 +185,18 @@ def load_zetup_config(path, zfg):
         line.strip() for line in re.sub(
             '\n\w*::', ' ::', config.get('classifiers', '').strip()
         ).split('\n'))))
-    zfg.CLASSIFIERS.append('Programming Language :: Python')
-    for pyversion in zfg.PYTHON:
+    zfg.CLASSIFIERS.append("Programming Language :: Python")
+
+    major_version = None
+    for short_version in zfg.PYTHON:
+        short_version = short_version.split('.')
+        if major_version != short_version[0]:
+            major_version = short_version[0]
+            zfg.CLASSIFIERS.append(
+                "Programming Language :: Python :: " + major_version)
+
         zfg.CLASSIFIERS.append(
-            'Programming Language :: Python :: ' + pyversion)
+            "Programming Language :: Python :: " + '.'.join(short_version))
 
     zfg.KEYWORDS = config.get('keywords', '').split()
     if any(pyversion.startswith('3') for pyversion in zfg.PYTHON):
@@ -195,29 +206,25 @@ def load_zetup_config(path, zfg):
     #  and add them to pkg.zetup package_data...
     zfg.ZETUP_DATA += ['VERSION', 'requirements.txt']
 
+    zfg.VERSION = None
     zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
     if os.path.exists(zfg.VERSION_FILE):
         zfg.in_repo = False
         zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
+
     else:
         zfg.in_repo = True
         zfg.VERSION_FILE = None
-        try:
-            import setuptools_scm
-        except ImportError:
-            warn(dedent(
-                """No 'setuptools_scm' package found.
-                   Zetup needs it to get project version from repository.
-                """))
-            zfg.VERSION = None
-        else:
-            version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
-            # the hyphen-revision-hash part after .dev# version strings
-            # results in wrong version comparisons
-            # via pkg_resources.parse_version()
-            zfg.VERSION = version and re.split('[-+]', version)[0]
-    if zfg.VERSION:
-        zfg.VERSION = Version(zfg.VERSION)
+        Requirements('setuptools_scm >= 3.0', zfg=zfg).check()
+
+        import setuptools_scm
+        version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
+        # the hyphen-revision-hash part after .dev# version strings
+        # results in wrong version comparisons
+        # via pkg_resources.parse_version()
+        zfg.VERSION = version and re.split('[-+]', version)[0]
+
+    zfg.VERSION = Version(zfg.VERSION)
 
     zfg.DISTRIBUTION = Distribution(zfg)
 
