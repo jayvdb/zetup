@@ -1,13 +1,16 @@
-"""Test the zetup config management on zetup package's own config.
+"""
+Test the zetup config management on zetup package's own config.
 
 .. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
 """
+
+import re
 import sys
 from types import ModuleType
 from inspect import ismodule
 
 from pkg_resources import (
-  parse_requirements, get_distribution, DistributionNotFound)
+    parse_requirements, get_distribution, DistributionNotFound)
 
 from path import Path
 
@@ -48,8 +51,9 @@ def test_distribution(zfg, pkg_path, in_repo, in_site_packages):
     else:
         if in_repo and not Path(dist.location).samefile(pkg_path.dirname()):
             dist = None
-    assert zetup.__distribution__ == zfg.DISTRIBUTION.find(pkg_path) \
-      == dist
+    assert (
+        zetup.__distribution__ == zfg.DISTRIBUTION.find(pkg_path) ==
+        dist)
 
 
 def test_version(zfg):
@@ -59,18 +63,27 @@ def test_version(zfg):
 def test_requires(zfg, zfg_path, in_repo, in_site_packages):
     assert zetup.__requires__ == zfg.REQUIRES
     if in_repo:
-        assert list(parse_requirements(str(zetup.__requires__))) == list(
-          parse_requirements((zfg_path / 'requirements.txt').text()))
+        assert (
+            list(parse_requirements(str(zetup.__requires__))) ==
+            list(parse_requirements((zfg_path / 'requirements.txt').text())))
 
 
 def test_extras(zfg, zfg_path, in_repo, in_site_packages):
     for extra in zetup.__extras__:
         assert zetup.__extras__[extra] == zfg.EXTRAS[extra]
         if in_repo:
-            assert list(parse_requirements(str(zetup.__extras__[extra]))) \
-              == list(parse_requirements(
-                   (zfg_path / ('requirements.%s.txt' % extra))
-                   .text()))
+            reqtext = re.sub(
+                r"^#py(?P<pyver>[\d\.]+):?\s+(?P<package>.+)",
+                lambda match: (
+                    match.group('package')
+                    if '.'.join(map(str, sys.version_info)).startswith(
+                        match.group('pyver'))
+                    else None),
+
+                (zfg_path / ('requirements.%s.txt' % extra)).text())
+            assert (
+                list(parse_requirements(str(zetup.__extras__[extra]))) ==
+                list(parse_requirements(reqtext)))
 
 
 def test_python(zfg):
@@ -78,5 +91,12 @@ def test_python(zfg):
 
 
 def test_classifiers(zfg):
-    assert all('Programming Language :: Python :: %s' % version
-               for version in zfg.PYTHON)
+    assert "Programming Language :: Python" in zfg.CLASSIFIERS
+    assert (
+        set(filter(
+            re.compile(r"^Programming Language :: Python :: [\d\.]+$").match,
+            zfg.CLASSIFIERS)) ==
+        set(
+            "Programming Language :: Python :: {}".format(v)
+            for short_version in zfg.PYTHON
+            for v in (short_version, short_version.split('.')[0])))
