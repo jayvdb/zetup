@@ -73,12 +73,12 @@ def test_extras(zfg, zfg_path, in_repo, in_site_packages):
         assert zetup.__extras__[extra] == zfg.EXTRAS[extra]
         if in_repo:
             reqtext = re.sub(
-                r"^#py(?P<pyver>[\d\.]+):?\s+(?P<package>.+)",
+                r"^#py(?P<pyver>[\d\.]+):?\s+(?P<package>.+)$",
                 lambda match: (
                     match.group('package')
                     if '.'.join(map(str, sys.version_info)).startswith(
                         match.group('pyver'))
-                    else None),
+                    else match.string),
 
                 (zfg_path / ('requirements.%s.txt' % extra)).text())
             assert (
