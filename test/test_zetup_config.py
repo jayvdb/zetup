@@ -48,6 +48,7 @@ def test_distribution(zfg, pkg_path, in_repo, in_site_packages):
             dist = None
         else:
             raise
+
     else:
         if in_repo and not Path(dist.location).samefile(pkg_path.dirname()):
             dist = None
@@ -60,30 +61,39 @@ def test_version(zfg):
     assert zetup.__version__ == zfg.VERSION
 
 
+REQUIREMENT_LINE_REGEX = re.compile(
+    r"^#py(?P<pyver>[\d\.]+):?\s+(?P<package>.+)$",
+    re.MULTILINE)
+
+
+def parse_requirements_file(reqfile):
+    return parse_requirements(REQUIREMENT_LINE_REGEX.sub(
+        lambda match: (
+            match.group('package')
+            if '.'.join(map(str, sys.version_info)).startswith(
+                match.group('pyver'))
+            else None),
+        reqfile.text()))
+
+
 def test_requires(zfg, zfg_path, in_repo, in_site_packages):
     assert zetup.__requires__ == zfg.REQUIRES
+
     if in_repo:
         assert (
             list(parse_requirements(str(zetup.__requires__))) ==
-            list(parse_requirements((zfg_path / 'requirements.txt').text())))
+            list(parse_requirements_file(zfg_path / 'requirements.txt')))
 
 
 def test_extras(zfg, zfg_path, in_repo, in_site_packages):
     for extra in zetup.__extras__:
         assert zetup.__extras__[extra] == zfg.EXTRAS[extra]
-        if in_repo:
-            reqtext = re.sub(
-                r"^#py(?P<pyver>[\d\.]+):?\s+(?P<package>.+)$",
-                lambda match: (
-                    match.group('package')
-                    if '.'.join(map(str, sys.version_info)).startswith(
-                        match.group('pyver'))
-                    else match.string),
 
-                (zfg_path / ('requirements.%s.txt' % extra)).text())
+        if in_repo:
             assert (
                 list(parse_requirements(str(zetup.__extras__[extra]))) ==
-                list(parse_requirements(reqtext)))
+                list(parse_requirements_file(
+                    zfg_path / ('requirements.%s.txt' % extra))))
 
 
 def test_python(zfg):
