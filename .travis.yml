@@ -10,7 +10,7 @@ python:
   - pypy
 
 install:
-  - pip install -U pip setuptools
+  - pip install -U pip setuptools six
   - pip install -U -r requirements.txt
   - pip install -U -e .[all]
 
