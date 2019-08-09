@@ -24,15 +24,17 @@ Resolver for setup requirements, fetching ``.eggs/`` on demand
 import re
 import sys
 
+import pkg_resources
 from pkg_resources import (
-    get_distribution, working_set, DistributionNotFound, VersionConflict)
+    DistributionNotFound, VersionConflict, WorkingSet,
+    get_distribution)  # , working_set)
 from setuptools.dist import Distribution
 
 __all__ = ['resolve']
 
 
 #: The egg installer
-INSTALLER = Distribution().fetch_build_egg
+# INSTALLER = Distribution().fetch_build_egg
 
 
 class StdErrWrapper(object):
@@ -64,10 +66,12 @@ def resolve(requirements):
     Make sure that setup `requirements` are always correctly resolved and
     accessible by:
 
-    * Recursively resolving their runtime requirements
-    * Moving any installed eggs to the front of ``sys.path``
-    * Updating ``pkg_resources.working_set`` accordingly
+    - Recursively resolving their runtime requirements
+    - Moving any installed eggs to the front of ``sys.path``
+    - Updating ``pkg_resources.working_set`` accordingly
     """
+    from .pip import pip
+
     # don't pollute stdout! first backup
     __stdout__ = sys.__stdout__
     stdout = sys.stdout
@@ -87,16 +91,27 @@ def resolve(requirements):
             try:
                 dist = get_distribution(req)
             except (DistributionNotFound, VersionConflict):
-                dist = INSTALLER(req)
+                pip(['uninstall', re.split(r'\W', req)[0]])
+                pip.install(req)
+
+                dist = get_distribution(req)
                 sys.path.insert(0, dist.location)
-                working_set.add_entry(dist.location)
+
+                # adapt pkg_resources to the newly installed requirement
+                pkg_resources.working_set = working_set = WorkingSet()
+                pkg_resources.require = working_set.require
+                pkg_resources.iter_entry_points = (
+                    working_set.iter_entry_points)
+
             print(repr(dist))
+
             extras = re.match(r'[^#\[]*\[([^#\]]*)\]', req)
             if extras:
                 extras = list(map(str.strip, extras.group(1).split(',')))
-            _resolve((str(req).split(';')[0]
-                      for req in dist.requires(extras=extras or ())),
-                     qualreq)
+            _resolve(
+                (str(req).split(';')[0] for req in dist.requires(
+                    extras=extras or ())),
+                qualreq)
 
     _resolve((str(req).split(';')[0] for req in requirements))
     # ... and finally restore stdout
