@@ -4,8 +4,6 @@ from __future__ import absolute_import
 
 import re
 
-from six import reraise
-
 from zetup.error import ZetupError
 from zetup.object import object, meta
 
