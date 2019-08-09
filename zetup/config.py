@@ -29,7 +29,7 @@ from .notebook import Notebook
 from .object import object, meta
 from .package import Packages
 from .requires import Requirements
-from .resolve import resolve
+from .resolve import DistributionNotFound, VersionConflict, resolve
 from .version import Version
 
 if sys.version_info[0] == 3:
@@ -51,6 +51,28 @@ CONFIG_FILE_NAMES = ['zetuprc', 'zetup.cfg', 'zetup.ini']
 
 class ZetupConfigNotFound(ZetupError):
     pass
+
+
+def load_version(zfg):
+    zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
+    if os.path.exists(zfg.VERSION_FILE):
+        zfg.in_repo = False
+        zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
+
+    else:
+        zfg.in_repo = True
+        zfg.VERSION_FILE = None
+        Requirements('setuptools_scm >= 3.0.0', zfg=zfg).check()
+
+        import setuptools_scm
+        version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
+        # the hyphen-revision-hash part after .dev# version strings
+        # results in wrong version comparisons
+        # via pkg_resources.parse_version()
+        zfg.VERSION = version and re.split('[-+]', version)[0]
+
+    print("VERSION:", zfg.VERSION)
+    return zfg.VERSION
 
 
 def load_zetup_config(path, zfg):
@@ -207,24 +229,29 @@ def load_zetup_config(path, zfg):
     zfg.ZETUP_DATA += ['VERSION', 'requirements.txt']
 
     zfg.VERSION = None
-    zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
-    if os.path.exists(zfg.VERSION_FILE):
-        zfg.in_repo = False
-        zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
+    # zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
+    # if os.path.exists(zfg.VERSION_FILE):
+    #     zfg.in_repo = False
+    #     zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
 
-    else:
-        zfg.in_repo = True
-        zfg.VERSION_FILE = None
-        Requirements('setuptools_scm >= 3.0', zfg=zfg).check()
+    # else:
+    #     zfg.in_repo = True
+    #     zfg.VERSION_FILE = None
+    #     Requirements('setuptools_scm >= 3.0.0', zfg=zfg).check()
 
-        import setuptools_scm
-        version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
-        # the hyphen-revision-hash part after .dev# version strings
-        # results in wrong version comparisons
-        # via pkg_resources.parse_version()
-        zfg.VERSION = version and re.split('[-+]', version)[0]
+    #     import setuptools_scm
+    #     version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
+    #     # the hyphen-revision-hash part after .dev# version strings
+    #     # results in wrong version comparisons
+    #     # via pkg_resources.parse_version()
+    #     zfg.VERSION = version and re.split('[-+]', version)[0]
 
-    zfg.VERSION = Version(zfg.VERSION)
+    # zfg.VERSION = Version(zfg.VERSION)
+    # raise RuntimeError(zfg.VERSION)
+    try:
+        zfg.VERSION = Version(load_version(zfg))
+    except (DistributionNotFound, VersionConflict):
+        pass
 
     zfg.DISTRIBUTION = Distribution(zfg)
 
@@ -233,7 +260,16 @@ def load_zetup_config(path, zfg):
         zfg.SETUP_REQUIRES = Requirements(
             open(req_setup_txt).read(), zfg=zfg)
     else:
-        zfg.SETUP_REQUIRES = None
+        zfg.SETUP_REQUIRES = Requirements("")
+    if zfg.in_repo:
+        zfg.SETUP_REQUIRES += "zetup[commands]"
+    # raise RuntimeError(zfg.SETUP_REQUIRES)
+
+    if zfg.SETUP_REQUIRES:
+        resolve(zfg.SETUP_REQUIRES)
+
+    if zfg.VERSION is None:
+        zfg.VERSION = Version(load_version(zfg))
 
     req_txt = os.path.join(zfg.ZETUP_DIR, 'requirements.txt')
     if os.path.exists(req_txt):
@@ -266,9 +302,9 @@ def load_zetup_config(path, zfg):
             zfg.NOTEBOOKS[name] \
                 = Notebook(os.path.join(zfg.ZETUP_DIR, fname))
 
-    # finally resolve setup requirements...
-    if zfg.SETUP_REQUIRES:
-        resolve(zfg.SETUP_REQUIRES)
+    # # finally resolve setup requirements...
+    # if zfg.SETUP_REQUIRES:
+    #     resolve(zfg.SETUP_REQUIRES)
 
     # ... and run any custom zetup config hooks
     if zfg.ZETUP_CONFIG_HOOKS:
