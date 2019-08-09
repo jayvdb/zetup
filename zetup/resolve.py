@@ -25,9 +25,12 @@ import re
 import sys
 
 import pkg_resources
+try:
+    from pip._vendor import pkg_resources as pip_vendor_pkg_resources
+except ImportError:
+    pip_vendor_pkg_resources = None
 from pkg_resources import (
-    DistributionNotFound, VersionConflict, WorkingSet,
-    get_distribution)  # , working_set)
+    DistributionNotFound, VersionConflict, get_distribution)
 from setuptools.dist import Distribution
 
 __all__ = ['resolve']
@@ -105,10 +108,14 @@ def resolve(requirements):
                 # pkg_resources._initialize_master_working_set()
 
                 # adapt pkg_resources to the newly installed requirement
-                pkg_resources.working_set = working_set = WorkingSet()
-                pkg_resources.require = working_set.require
-                pkg_resources.iter_entry_points = (
-                    working_set.iter_entry_points)
+                pkg_resources_modules = [pkg_resources]
+                if pip_vendor_pkg_resources is not None:
+                    pkg_resources_modules.append(pip_vendor_pkg_resources)
+
+                for pkg_r in pkg_resources_modules:
+                    pkg_r.working_set = working_set = pkg_r.WorkingSet()
+                    pkg_r.require = working_set.require
+                    pkg_r.iter_entry_points = working_set.iter_entry_points
 
                 dist = get_distribution(req)
                 sys.path.insert(0, dist.location)
