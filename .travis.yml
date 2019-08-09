@@ -25,7 +25,6 @@ script:
   - tox -r -v
 
   - zetup install
-  - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
   - zetup tox
 
 deploy:
