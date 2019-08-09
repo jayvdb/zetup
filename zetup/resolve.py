@@ -90,18 +90,22 @@ def resolve(requirements):
             print("Resolving setup requirement %s:" % qualreq)
             try:
                 dist = get_distribution(req)
-            except (DistributionNotFound, VersionConflict):
-                pip.uninstall(re.split(r'\W', req)[0], '--yes')
+            except (DistributionNotFound, VersionConflict) as exc:
+                if isinstance(exc, VersionConflict):
+                    pip.uninstall(re.split(r'\W', req)[0], '--yes')
+                    pkg_resources._initialize_master_working_set()
+
                 pip.install(req)
+                pkg_resources._initialize_master_working_set()
 
                 dist = get_distribution(req)
                 sys.path.insert(0, dist.location)
 
                 # adapt pkg_resources to the newly installed requirement
-                pkg_resources.working_set = working_set = WorkingSet()
-                pkg_resources.require = working_set.require
-                pkg_resources.iter_entry_points = (
-                    working_set.iter_entry_points)
+                # pkg_resources.working_set = working_set = WorkingSet()
+                # pkg_resources.require = working_set.require
+                # pkg_resources.iter_entry_points = (
+                #     working_set.iter_entry_points)
 
             print(repr(dist))
 
