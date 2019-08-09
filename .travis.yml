@@ -13,6 +13,8 @@ install:
   - pip install -U pip setuptools
   - pip install -U -r requirements.txt
   - pip install -U -e .[all]
+
+  - cd test && pip uninstall --yes zetup && cd ..
   - pip install -U -r test-requirements.txt
   - pip install -U tox tox-travis
 
@@ -21,6 +23,10 @@ script:
   - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
   - # python setup.py tox
   - tox -r -v
+
+  - zetup install
+  - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
+  - zetup tox
 
 deploy:
   provider: pypi
