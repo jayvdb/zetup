@@ -14,7 +14,7 @@ install:
   - pip install -U -r requirements.txt
   - pip install -U -e .[all]
 
-  - cd test && pip uninstall --yes zetup && cd ..
+  - cd test && pip uninstall --yes zetup && cd .. && pip install -e .
   - pip install -U -r test-requirements.txt
   - pip install -U tox tox-travis
 
