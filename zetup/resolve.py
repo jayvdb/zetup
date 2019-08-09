@@ -91,7 +91,7 @@ def resolve(requirements):
             try:
                 dist = get_distribution(req)
             except (DistributionNotFound, VersionConflict):
-                pip(['uninstall', re.split(r'\W', req)[0]])
+                pip.uninstall(re.split(r'\W', req)[0], '--yes')
                 pip.install(req)
 
                 dist = get_distribution(req)
