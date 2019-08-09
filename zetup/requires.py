@@ -83,7 +83,7 @@ class Requirements(object):
     def _parse(text):
         """
         Generate parsed requirements from `text`.
-        
+
         :param text:
             Newline-separated requirement specs
 
@@ -100,9 +100,9 @@ class Requirements(object):
             if not line:
                 continue
             match = re.match(r'^#py([0-9]+) (.*)$', line)
-            if match: #==> only required in given python version
+            if match:  # ==> only required in given python version
                 pyver, line = match.groups()
-                #TODO:
+                # TODO:
                 # if len(pyver) > 2:
                 if not ('%s%s' % sys.version_info[:2]).startswith(pyver):
                     continue
@@ -113,7 +113,7 @@ class Requirements(object):
                 impname = req and req.unsafe_name
             else:
                 req = next(parse_requirements(req), None)
-            if not req: # maybe a comment line
+            if not req:  # maybe a comment line
                 continue
             req.impname = impname.strip()
             yield req
@@ -163,7 +163,7 @@ class Requirements(object):
     def check(self, requirer=None, raise_=True):
         """
         Check that all requirements are satisfied.
-        
+
         They must be importable and their versions (from their top-level
         package modules' ``.__version__`` attributes) must match the required
         specs
@@ -208,6 +208,8 @@ class Requirements(object):
                     raise AttributeError(
                         "module's '__version__' attribute is {!r}"
                         .format(version))
+                else:
+                    origin = repr(mod)
 
             except AttributeError as e_no__version__attr:
                 try:  # try to get version from distribution
@@ -222,9 +224,11 @@ class Requirements(object):
                     return False
 
                 version = dist.version
+                origin = repr(dist)
             if version not in req:
                 if raise_:
-                    raise VersionConflict(req, version, requirer)
+                    raise VersionConflict(
+                        req, version, requirer, reason=origin)
 
                 return False
 
