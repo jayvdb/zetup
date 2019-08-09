@@ -104,7 +104,7 @@ def resolve(requirements):
                 #     pkg_resources.iter_entry_points = (
                 #         working_set.iter_entry_points)
 
-                pip.install(req)
+                pip.install(req, '--no-warn-conflicts')
                 # pkg_resources._initialize_master_working_set()
 
                 # adapt pkg_resources to the newly installed requirement
