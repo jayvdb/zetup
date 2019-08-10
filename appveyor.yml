@@ -9,11 +9,11 @@ build: off
 
 install:
   - ps: |
-        foreach ($args in (
-            "pip setuptools six"
-            "-r requirements.txt"
+        foreach ($args in
+            "pip setuptools six",
+            "-r requirements.txt",
             "-e .[all]"
-        )) {
+        ) {
             python -m pip install -U $args.split()
         }
 
