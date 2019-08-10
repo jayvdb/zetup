@@ -1,0 +1,26 @@
+environment:
+  matrix:
+    - TOXENV: py27
+    - TOXENV: py35
+    - TOXENV: py36
+    - TOXENV: py37
+
+build: off
+
+install:
+  - pip install -U pip setuptools six
+  - pip install -U -r requirements.txt
+  - pip install -U -e .[all]
+
+  - cd test && pip uninstall --yes zetup && cd .. && pip install -e .
+  - pip install -U -r test-requirements.txt
+  - pip install -U tox
+
+test_script:
+  - # python setup.py pytest
+  - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
+  - # python setup.py tox
+  - tox -r -v
+
+  - zetup install
+  - zetup tox
