@@ -35,4 +35,5 @@ test_script:
 
   - cmd: |
         %PY% -m zetup install
+        %PY% -m zetup sdist
         rem %PY% -m zetup tox
