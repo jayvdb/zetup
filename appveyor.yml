@@ -8,16 +8,11 @@ environment:
 build: off
 
 install:
-  - ps: |
-        foreach ($args in
-            "pip setuptools six",
-            "-r requirements.txt",
-            "-e .[all]"
-        ) {
-            python -m pip install -U $args.split()
-        }
+  - python -m pip install -U pip setuptools six
+  - pip install -U -r requirements.txt
+  - pip install -U -e .
 
-  - cd test && pip uninstall --yes zetup && cd .. && pip install -e .
+  - cd test && pip uninstall --yes zetup && cd .. && pip install -e .[all]
   - pip install -U -r test-requirements.txt
   - pip install -U tox
 
