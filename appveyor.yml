@@ -23,5 +23,5 @@ test_script:
   # - python setup.py tox
   # - tox -r -v
 
-  - zetup install
+  - python -m zetup install
   # - zetup tox
