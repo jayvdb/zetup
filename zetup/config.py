@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import, print_function
+
 import os
 import re
 import sys
@@ -71,7 +73,7 @@ def load_version(zfg):
         # via pkg_resources.parse_version()
         zfg.VERSION = version and re.split('[-+]', version)[0]
 
-    print("VERSION:", zfg.VERSION)
+    # print("VERSION:", zfg.VERSION)
     return zfg.VERSION
 
 
