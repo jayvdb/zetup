@@ -1,27 +1,38 @@
 environment:
   matrix:
-    - TOXENV: py27
-    - TOXENV: py35
-    - TOXENV: py36
-    - TOXENV: py37
+    - PY: C:\Python27\python.exe
+    - PY: C:\Python27-x64\python.exe
+
+    - PY: C:\Python35\python.exe
+    - PY: C:\Python35-x64\python.exe
+
+    - PY: C:\Python36\python.exe
+    - PY: C:\Python36-x64\python.exe
+
+    - PY: C:\Python37\python.exe
+    - PY: C:\Python37-x64\python.exe
 
 build: off
 
 install:
-  - python -m pip install -U pip setuptools six
-  - pip install -U -r requirements.txt
-  - pip install -U -e .
+  - cmd: |
+        %PY% -m pip install -U pip setuptools six
+        %PY% -m pip install -U -r requirements.txt
+        %PY% -m pip install -U -e .
 
-  - cd test && pip uninstall --yes zetup && cd ..
-  - pip install -e .[all]
-  - pip install -U -r test-requirements.txt
-  # - pip install -U tox
+  - cmd: |
+        cd test && %PY% -m pip uninstall --yes zetup && cd ..
+        %PY% -m pip install -e .[all]
+        %PY% -m pip install -U -r test-requirements.txt
+        rem %PY% -m pip install -U tox
 
 test_script:
-  # - python setup.py pytest
-  - py.test -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
-  # - python setup.py tox
-  # - tox -r -v
+  - cmd: |
+        rem %PY% setup.py pytest
+        %PY% -m pytest -vv --doctest-modules zetup test --cov zetup --cov test --cov-report term-missing
+        rem %PY% setup.py tox
+        rem %PY% -m tox -r -v
 
-  - python -m zetup install
-  # - zetup tox
+  - cmd: |
+        %PY% -m zetup install
+        rem %PY% -m zetup tox
