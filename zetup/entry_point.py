@@ -27,7 +27,8 @@ def setup_entry_point(dist, keyword='use_zetup', value=True):
         # but *pip* only works correct if some stuff is also set directly on
         # dist object (pip seems to read at least package infos somehow from
         # there)
-        if name.startswith('package') or name.endswith('requires'):
+        if name.startswith('package') or name.endswith((
+                'requires', 'require')):
             setattr(dist, name, value)
 
     if zfg.in_repo:
