@@ -31,6 +31,7 @@ pkg_resources.iter_entry_points = pkg_resources.WorkingSet().iter_entry_points
 pkg_resources.require = pkg_resources.WorkingSet().require
 
 
+from .entry_point import setup_entry_point
 from .zetup import Zetup, find_zetup_config
 from .error import ZetupError
 from .config import ZetupConfigNotFound
@@ -39,21 +40,34 @@ from .resolve import resolve
 from .process import Popen, call
 from .object import object, meta
 from .annotate import annotate
-from .modules import package, toplevel, extra_toplevel
-from .classpackage import classpackage
+from .func import apifunction
+from .modules import module, package, toplevel, extra_toplevel
+from .classes import class_package, class_member_module
+from .zfg import ZFG_PARSER, ZFGData, ZFGFile, ZFGParser, parse_zfg
 from .pip import ZetupPipError, pip
 # import notebook subpackage for defining extra_toplevel below
 from . import notebook
 
 
 zetup = toplevel(__name__, [
+    'setup_entry_point',
     'Zetup', 'find_zetup_config',
     'ZetupError', 'ZetupConfigNotFound',
+    'ZFG_PARSER', 'ZFGFile', 'ZFGData', 'parse_zfg',
     'resolve', 'DistributionNotFound', 'VersionConflict',
     'Popen', 'call',
     'object', 'meta',
-    'annotate', 'package', 'toplevel', 'extra_toplevel',
-], check_requirements=False)
+    'annotate', 'apifunction',
+    'module', 'package', 'toplevel', 'extra_toplevel',
+    'class_package', 'class_member_module',
+    'program', 'with_arguments',
+], deprecated_aliases={
+    'classpackage': 'class_package',
+}, check_requirements=False)
+
+
+from .program import program, with_arguments
+
 
 # can't be defined in .notebook subpackage
 # because .notebook is also needed to load zetup's own config
@@ -65,50 +79,3 @@ extra_toplevel(zetup, notebook.__name__, [
 # a manually setting of the subpackage attribute
 # on the zetup toplevel wrapper is needed
 sys.modules[__name__].notebook = sys.modules[notebook.__name__]
-
-
-def setup_entry_point(dist, keyword='use_zetup', value=True):
-    """
-    Zetup's ``entry_point`` handler for the ``setup()`` process in a project's
-    **setup.py**, setting all setup keyword parameters based on zetup config
-
-    Activated with ``setup(setup_requires=['zetup'], use_zetup=True)``
-    """
-    assert keyword == 'use_zetup'
-    if not value:
-        return
-
-    from .zetup import Zetup
-    # read config from current working directory (where setup.py is run)
-    zetup = Zetup()
-    keywords = zetup.setup_keywords()
-    for name, value in keywords.items():
-        # generally, setting stuff on dist.metadata is enough (and necessary)
-        setattr(dist.metadata, name, value)
-        # but *pip* only works correct if some stuff is also set directly on
-        # dist object (pip seems to read at least package infos somehow from
-        # there)
-        if name.startswith('package') or name.endswith('requires'):
-            setattr(dist, name, value)
-
-    if zetup.in_repo:
-        # resolve requirements for zetup make
-        resolve(['zetup[commands]>={}'.format(
-            __import__('zetup').__version__)])
-        import zetup.commands as _
-
-        # make necessary files and store make result in distribution object,
-        # so that files can be removed by del dist.zetup_made after setup()
-        make_targets = ['VERSION', 'setup.py', 'zetup_config']
-        dist.zetup_made = zetup.make(targets=make_targets)
-
-    # finally run any custom setup hooks defined in project's zetup config
-    if zetup.SETUP_HOOKS:
-        sys.path.insert(0, '.')
-        for hook in zetup.SETUP_HOOKS:
-            modname, funcname = hook.split(':')
-            mod = __import__(modname)
-            for subname in modname.split('.')[1:]:
-                mod = getattr(mod, subname)
-            func = getattr(mod, funcname)
-            func(dist)

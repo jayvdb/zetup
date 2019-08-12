@@ -1,88 +1,92 @@
-# zetup.py
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Zimmermann's Python package setup.
+# Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
-# Copyright (C) 2014-2016 Stefan Zimmermann <zimmermann.code@gmail.com>
-#
-# zetup.py is free software: you can redistribute it and/or modify
+# ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# zetup.py is distributed in the hope that it will be useful,
+# ZETUP is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
+# along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
-"""zetup.classpackage
+"""Define :class:`zetup.class_package`."""
 
-Defines :class:`zetup.classpackage`
-
-.. moduleauthor:: Stefan Zimmermann <zimmermann.code@gmail.com>
-"""
 from __future__ import absolute_import
-
-__all__ = ['classpackage']
 
 from importlib import import_module
 
-from .modules import package
+import zetup
+
+__all__ = ('class_package', )
 
 
-class classpackage(package):
-    """Sub-package module wrapper, auto-importing a class definition
-    from that sub-package and supporting class member definitions
-    in separate sub-modules, if:
-
-    * The class is named after the sub-package.
-    * The class is a sub-class of :class:`zetup.object`.
-    * The sub-package name is defined as API member of parent
-      :class:`zetup.package` instance.
-    * Sub-module names are listed via ``membermodules=`` argument
-      and members in those sub-modules are decorated
-      with class method :func:`zetup.object.member`.
-
-    **package/__init__.py** ::
-
-       import zetup
-       zetup.package(__name__, ['Class', ...])
-
-    **package/Class/__init__.py** ::
-
-       import zetup
-       zetup.classpackage(__name__, membermodules=['methods', ...])
-
-       class Class:
-           def __init__(self, ...):
-               ...
-           ...
-
-    **package/Class/methods.py** ::
-
-       from . import Class
-
-       @Class.member
-       def method(self, ...):
-           ...
-
-    >>> import package
-    >>> package.Class
-    <class package.Class>
-    >>> package.Class.method
-    <function package.Class.method>
+class class_package(zetup.package):
     """
-    __module__ = __package__
+    Module wrapper for a sub-package that defines a huge class.
 
-    def __init__(self, pkgname, membermodules=None):
+    Enables auto-import of the class object instead of the package module
+    object when imported from its parent package, and supports the
+    distribution of class member definitions in separate sub-modules, given
+    the following conditions:
+
+    -   The class is named after the sub-package
+    -   The class is a sub-class of :class:`zetup.object`
+    -   The name of the sub-package containing the class is defined as API
+        member of a parent :class:`zetup.package` instance
+    -   All sub-module names are listed in the ``member_modules=`` argument,
+        and members in those sub-modules are decorated using
+        :meth:`zetup.meta.member` and `:meth:`zetup.meta.metamember`, which
+        can be obtained from the :class:`zetup.class_member_module` wrapper
+
+    The whole mechanism is shown below using the example ``Class`` contained
+    in the ``zetup.classes.test`` package:
+
+    ``zetup/classes/test/__init__.py`` ::
+
+        import zetup
+        zetup.package(__name__, ['Class', ...])
+
+    ``zetup/classes/test/Class/__init__.py`` ::
+
+        import zetup
+        zetup.class_package(__name__, member_modules=['methods', ...])
+
+        class Class:
+            def __init__(self, ...):
+                ...
+            ...
+
+    ``zetup/classes/test/Class/methods.py`` ::
+
+        import zetup
+        member, metamember = zetup.class_member_module(__name__ ['method'])
+
+        @member
+        def method(self, ...):
+            ...
+
+    >>> from zetup.classes.test import Class
+    >>> Class
+    <class 'zetup.classes.test.Class'>
+    >>> Class.method
+    <... Class.method...>
+    """
+
+    __package__ = zetup
+
+    def __init__(self, pkgname, member_modules=None):
         """Created with ``__name__`` of the subpackage defining the class
         and the optional list of `membermodules` to automatically import
         (sub-modules defining additional class members).
         """
         parentpkgname, classname = pkgname.rsplit('.', 1)
-        super(classpackage, self).__init__(pkgname, [classname])
+        super(class_package, self).__init__(pkgname, [classname])
 
         pkgcls = type(self)
         pkgdict = self.__dict__
@@ -92,10 +96,12 @@ class classpackage(package):
             and automatically import all defined ``membermodules``.
             """
             classobj = pkgcls.__getattribute__(self, classname)
-            classobj.__module__ = parentpkgname
-            if membermodules is not None:
-                for modname in membermodules:
+            if not getattr(classobj, '__package__', None):
+                classobj.__package__ = parentpkgname
+            if member_modules is not None:
+                for modname in member_modules:
                     mod = import_module('%s.%s' % (pkgname, modname))
+                    mod.owner = classobj
             return classobj
 
         class package(type(self)):

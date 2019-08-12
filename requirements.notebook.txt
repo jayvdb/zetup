@@ -1,2 +1,3 @@
-path.py >= 11.1 #import path
-nbconvert >= 5.4
+#py2 path.py ~= 11.5.0 #import path
+#py3 path.py >= 11.5.0 #import path
+nbconvert >= 5.4.1

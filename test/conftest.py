@@ -20,10 +20,10 @@ def zfg():
 
 
 @pytest.fixture(scope='module')
-def in_site_packages():
+def in_site_packages(zfg):
     """Is zetup imported from repository?
     """
-    return ismodule(zfg())
+    return ismodule(zfg)
 
 
 @pytest.fixture(scope='module')

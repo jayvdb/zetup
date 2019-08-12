@@ -1,116 +1,41 @@
-{# zetup.py
- #
- # Zimmermann's Python package setup.
- #
- # Copyright (C) 2014-2015 Stefan Zimmermann <zimmermann.code@gmail.com>
- #
- # zetup.py is free software: you can redistribute it and/or modify
- # it under the terms of the GNU Lesser General Public License as published by
- # the Free Software Foundation, either version 3 of the License, or
- # (at your option) any later version.
- #
- # zetup.py is distributed in the hope that it will be useful,
- # but WITHOUT ANY WARRANTY; without even the implied warranty of
- # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- # GNU Lesser General Public License for more details.
- #
- # You should have received a copy of the GNU Lesser General Public License
- # along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
- #}
+{# ZETUP | Zimmermann's Extensible Tools for Unified Project_setups
+##
+## Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
+##
+## ZETUP is free software: you can redistribute it and/or modify
+## it under the terms of the GNU Lesser General Public License as published by
+## the Free Software Foundation, either version 3 of the License, or
+## (at your option) any later version.
+##
+## ZETUP is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU Lesser General Public License for more details.
+##
+## You should have received a copy of the GNU Lesser General Public License
+## along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
+#}
 
-{% block header %}{{ zetup_header }}{% endblock %}
-
-{%- block imports %}
+{%- block header %}{{ zetup_header }}{% endblock %}
+{% block imports -%}
 from __future__ import print_function
 
-import sys
-import os
-import re
+from setuptools import setup
+{%- endblock %}
+
+{% block pre_setup %}{% endblock %}
+{% block setup -%}
+dist = None
 try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-{% endblock %}
+    dist = setup(
+        {% block setup_keywords -%}
+        setup_requires=["zetup >= {{ zetup.__version__ }}"],
 
-SETUP_REQUIRES = [
-    {% block setup_requires %}'zetup >= {{ zetup.__version__ }}',
-    {%- endblock %}
-]
-
-{% block pre_setup %}
-try:
-    from setuptools.dist import Distribution
-    from pkg_resources import get_distribution, working_set, \
-      DistributionNotFound, VersionConflict
-except ImportError: # no setuptools
-    pass
-else:
-    # Make sure that setup requirements are always correctly resolved and
-    # accessible by:
-    # - Recursively resolving their runtime requirements
-    # - Moving any installed eggs to the front of sys.path
-    # - Updating pkg_resources.working_set accordingly
-
-    installer = Distribution().fetch_build_egg
-
-    # don't pollute stdout. first backup
-    __stdout__ = sys.__stdout__
-    stdout = sys.stdout
-    # then redirect to stderr...
-
-    class StdErrWrapper(object):
-        # on windows, directly assigning stderr to stdout
-        # often leads to a detached stderr buffer in the end
-
-        def __getattr__(self, name):
-            return getattr(sys.__stderr__, name)
-
-        def detach(self):
-            # so don't let stderr's buffer get stolen
-            return self
-
-        def __del__(self):
-            # and also don't let __getattr__ fetch stderr's __del__
-            pass
-
-    sys.stdout = sys.__stdout__ = StdErrWrapper()
-
-    def resolve(requirements, parent=None):
-        for req in requirements:
-            qualreq = parent and '%s->%s' % (req, parent) or req
-            print("Resolving setup requirement %s:" % qualreq)
-            try:
-                dist = get_distribution(req)
-                print(repr(dist))
-            except (DistributionNotFound, VersionConflict):
-                dist = installer(req)
-                sys.path.insert(0, dist.location)
-                working_set.add_entry(dist.location)
-            extras = re.match(r'[^#\[]*\[([^#\]]*)\]', req)
-            if extras:
-                extras = list(map(str.strip, extras.group(1).split(',')))
-            resolve((str(req).split(';')[0]
-                     for req in dist.requires(extras=extras or ())),
-                    qualreq)
-
-    resolve(SETUP_REQUIRES)
-    zfg = __import__('zetup').Zetup()
-
-    resolve(str(req).split(';')[0] for req in zfg.SETUP_REQUIRES or [])
-
-    sys.__stdout__ = __stdout__
-    sys.stdout = stdout
-{% endblock %}
-
-dist = zfg.setup(
-    {%- block setup_keywords %}
-    setup_requires=SETUP_REQUIRES + [
-        str(req) for req in zfg.SETUP_REQUIRES or ()],
-
-    use_zetup=True,
-    {%- endblock %}
-)
-
-{% block post_setup %}
-del dist.zetup_made
-{% endblock %}
+        use_zetup=True,
+        {%- endblock %}
+    )
+finally:
+    if dist is not None and hasattr(dist, 'zetup_made'):
+        dist.zetup_made.clean()
+{%- endblock %}
+{% block post_setup %}{% endblock %}

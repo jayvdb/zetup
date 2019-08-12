@@ -71,7 +71,7 @@ def run(argv=None, cmd=None):
     else:
         if args.cmd in zfg.COMMANDS:
             cmdfunc = getattr(zfg, args.cmd)
-        else: # ==> standard setup command
+        else:  # ==> standard setup command
             sys.exit(zfg(subprocess=True))
 
     try:
@@ -80,7 +80,7 @@ def run(argv=None, cmd=None):
         print("Error: %s" % exc, file=sys.stderr)
         exit_status = 1
     else:
-        try: # return value can be more than just a status number
+        try:  # return value can be more than just a status number
             exit_status = exit_status.status
         except AttributeError:
             pass

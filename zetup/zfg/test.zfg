@@ -1,0 +1,5 @@
+[test section]
+test option = test value
+
+[other test section]
+test option = other test value

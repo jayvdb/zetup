@@ -1,30 +1,39 @@
-# zetup.py
+# ZETUP | Zimmermann's Extensible Tools for Unified Projects
 #
-# Zimmermann's Python package setup.
+# Copyright (C) 2014-2019 Stefan Zimmermann <user@zimmermann.co>
 #
-# Copyright (C) 2014-2015 Stefan Zimmermann <zimmermann.code@gmail.com>
-#
-# zetup.py is free software: you can redistribute it and/or modify
+# ZETUP is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# zetup.py is distributed in the hope that it will be useful,
+# ZETUP is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
-# along with zetup.py. If not, see <http://www.gnu.org/licenses/>.
+# along with ZETUP. If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ['load_zetup_config']
+from __future__ import absolute_import, print_function
 
-import sys
 import os
 import re
-from textwrap import dedent
+import sys
 from collections import OrderedDict
+from textwrap import dedent
 from warnings import warn
+
+from .error import ZetupError
+from .extras import Extras
+from .dist import Distribution
+from .notebook import Notebook
+from .object import object, meta
+from .package import Packages
+from .requires import Requirements
+from .resolve import DistributionNotFound, VersionConflict, resolve
+from .version import Version
+
 if sys.version_info[0] == 3:
     from configparser import ConfigParser
     # Just for simpler PY2/3 compatible code:
@@ -32,14 +41,7 @@ if sys.version_info[0] == 3:
 else:
     from ConfigParser import ConfigParser
 
-from .version import Version
-from .requires import Requirements
-from .extras import Extras
-from .dist import Distribution
-from .package import Packages
-from .notebook import Notebook
-from .resolve import resolve
-from .error import ZetupError
+__all__ = ('load_zetup_config', )
 
 
 TRUE = True, 'true', 'yes'
@@ -53,9 +55,33 @@ class ZetupConfigNotFound(ZetupError):
     pass
 
 
+def load_version(zfg):
+    zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
+    if os.path.exists(zfg.VERSION_FILE):
+        zfg.in_repo = False
+        zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
+
+    else:
+        zfg.in_repo = True
+        zfg.VERSION_FILE = None
+        Requirements('setuptools_scm >= 3.0.0', zfg=zfg).check()
+
+        import setuptools_scm
+        version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
+        # the hyphen-revision-hash part after .dev# version strings
+        # results in wrong version comparisons
+        # via pkg_resources.parse_version()
+        zfg.VERSION = version and re.split('[-+]', version)[0]
+
+    # print("VERSION:", zfg.VERSION)
+    return zfg.VERSION
+
+
 def load_zetup_config(path, zfg):
-    """Load zetup config from directory in `path`
-       and store keywords as attributes to `zfg` object.
+    """
+    Load zetup config from directory in `path`.
+
+    Then process and store config parameters as attributes to `zfg` object
     """
     zfg.ZETUP_DIR = path
 
@@ -64,26 +90,27 @@ def load_zetup_config(path, zfg):
     for fname in CONFIG_FILE_NAMES:
         zfg.ZETUP_FILE = os.path.join(zfg.ZETUP_DIR, fname)
         if config.read(zfg.ZETUP_FILE):
-            ##TODO: No print if run from installed package (under pkg/zetup/):
-            ## print("zetup: Using config from %s" % fname)
+            # TODO: No print if run from installed package (under pkg/zetup/):
+            # print("zetup: Using config from %s" % fname)
 
             # The config file will be installed as pkg.zetup package_data:
             zfg.ZETUP_DATA = [fname]
             break
     else:
         raise ZetupConfigNotFound(
-          "No zetup config file found in %s" % repr(path)
-          + " (need %s)" % " or ".join([
-            ", ".join(map(repr, CONFIG_FILE_NAMES[:-1])),
-            repr(CONFIG_FILE_NAMES[-1])]))
+            "No zetup config file found in %s" % repr(path) +
+            " (need %s)" % " or ".join([
+                ", ".join(map(repr, CONFIG_FILE_NAMES[:-1])),
+                repr(CONFIG_FILE_NAMES[-1])]))
 
-    #... and store all setup options in UPPERCASE vars...
+    # ... and store all setup options in UPPERCASE vars...
     zfg.NAME = config.sections()[0]
 
     # get a section dictionary with normalized option names as keys
     # and stripped value strings
-    config = {re.sub(r'[^a-z0-9]', '', option.lower()): value.strip()
-              for option, value in config.items(zfg.NAME)}
+    config = {
+        re.sub(r'[^a-z0-9]', '', option.lower()): value.strip()
+        for option, value in config.items(zfg.NAME)}
 
     zfg.TITLE = config.get('title', zfg.NAME)
     zfg.DESCRIPTION = config.get('description', '').replace('\n', ' ')
@@ -98,7 +125,7 @@ def load_zetup_config(path, zfg):
 
     zfg.LICENSE = config.get('license')
 
-    zfg.PYTHON = config.get('python', '').split()
+    zfg.PYTHON = sorted(map(Version, config.get('python', '').split()))
 
     zfg.PACKAGES = config.get(
         'packages', Packages([], root=zfg.ZETUP_DIR, zfg=zfg))
@@ -182,10 +209,18 @@ def load_zetup_config(path, zfg):
         line.strip() for line in re.sub(
             '\n\w*::', ' ::', config.get('classifiers', '').strip()
         ).split('\n'))))
-    zfg.CLASSIFIERS.append('Programming Language :: Python')
-    for pyversion in zfg.PYTHON:
+    zfg.CLASSIFIERS.append("Programming Language :: Python")
+
+    major_version = None
+    for short_version in zfg.PYTHON:
+        short_version = short_version.split('.')
+        if major_version != short_version[0]:
+            major_version = short_version[0]
+            zfg.CLASSIFIERS.append(
+                "Programming Language :: Python :: " + major_version)
+
         zfg.CLASSIFIERS.append(
-            'Programming Language :: Python :: ' + pyversion)
+            "Programming Language :: Python :: " + '.'.join(short_version))
 
     zfg.KEYWORDS = config.get('keywords', '').split()
     if any(pyversion.startswith('3') for pyversion in zfg.PYTHON):
@@ -195,29 +230,30 @@ def load_zetup_config(path, zfg):
     #  and add them to pkg.zetup package_data...
     zfg.ZETUP_DATA += ['VERSION', 'requirements.txt']
 
-    zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
-    if os.path.exists(zfg.VERSION_FILE):
-        zfg.in_repo = False
-        zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
-    else:
-        zfg.in_repo = True
-        zfg.VERSION_FILE = None
-        try:
-            import setuptools_scm
-        except ImportError:
-            warn(dedent(
-                """No 'setuptools_scm' package found.
-                   Zetup needs it to get project version from repository.
-                """))
-            zfg.VERSION = None
-        else:
-            version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
-            # the hyphen-revision-hash part after .dev# version strings
-            # results in wrong version comparisons
-            # via pkg_resources.parse_version()
-            zfg.VERSION = version and re.split('[-+]', version)[0]
-    if zfg.VERSION:
-        zfg.VERSION = Version(zfg.VERSION)
+    zfg.VERSION = None
+    # zfg.VERSION_FILE = os.path.join(zfg.ZETUP_DIR, 'VERSION')
+    # if os.path.exists(zfg.VERSION_FILE):
+    #     zfg.in_repo = False
+    #     zfg.VERSION = open(zfg.VERSION_FILE).read().strip()
+
+    # else:
+    #     zfg.in_repo = True
+    #     zfg.VERSION_FILE = None
+    #     Requirements('setuptools_scm >= 3.0.0', zfg=zfg).check()
+
+    #     import setuptools_scm
+    #     version = setuptools_scm.get_version(root=zfg.ZETUP_DIR)
+    #     # the hyphen-revision-hash part after .dev# version strings
+    #     # results in wrong version comparisons
+    #     # via pkg_resources.parse_version()
+    #     zfg.VERSION = version and re.split('[-+]', version)[0]
+
+    # zfg.VERSION = Version(zfg.VERSION)
+    # raise RuntimeError(zfg.VERSION)
+    try:
+        zfg.VERSION = Version(load_version(zfg))
+    except (DistributionNotFound, VersionConflict):
+        pass
 
     zfg.DISTRIBUTION = Distribution(zfg)
 
@@ -226,7 +262,16 @@ def load_zetup_config(path, zfg):
         zfg.SETUP_REQUIRES = Requirements(
             open(req_setup_txt).read(), zfg=zfg)
     else:
-        zfg.SETUP_REQUIRES = None
+        zfg.SETUP_REQUIRES = Requirements("")
+    if zfg.in_repo:
+        zfg.SETUP_REQUIRES += "zetup[commands]"
+    # raise RuntimeError(zfg.SETUP_REQUIRES)
+
+    if zfg.SETUP_REQUIRES:
+        resolve(zfg.SETUP_REQUIRES)
+
+    if zfg.VERSION is None:
+        zfg.VERSION = Version(load_version(zfg))
 
     req_txt = os.path.join(zfg.ZETUP_DIR, 'requirements.txt')
     if os.path.exists(req_txt):
@@ -259,9 +304,9 @@ def load_zetup_config(path, zfg):
             zfg.NOTEBOOKS[name] \
                 = Notebook(os.path.join(zfg.ZETUP_DIR, fname))
 
-    # finally resolve setup requirements...
-    if zfg.SETUP_REQUIRES:
-        resolve(zfg.SETUP_REQUIRES)
+    # # finally resolve setup requirements...
+    # if zfg.SETUP_REQUIRES:
+    #     resolve(zfg.SETUP_REQUIRES)
 
     # ... and run any custom zetup config hooks
     if zfg.ZETUP_CONFIG_HOOKS:

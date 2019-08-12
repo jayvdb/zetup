@@ -38,8 +38,11 @@ class TestObject(object):
         # which in this case are all members from builtin object and type
         # and the added '__dir__' in PY2 (and auto-added '__weakref__')
         assert set(dir(zetup.object)) == set(chain(dir(object), dir(type), [
-            '__dir__', '__weakref__',
-            'member', 'metamember',
+            '__dir__',
+            '__package__',
+            '__weakref__',
+            'member',
+            'metamember',
         ]))
         # and that there are no duplicate names
         assert sorted(dir(zetup.object)) == sorted(set(dir(zetup.object)))
@@ -53,4 +56,9 @@ class TestObject(object):
         # and auto-added '__weakref__', '__module__' and '__dict__'
         # from zetup.object class level
         assert set(dir(zetup.object())) == set(chain(dir(object()), [
-            '__dir__', '__weakref__', '__module__', '__dict__']))
+            '__dict__',
+            '__dir__',
+            '__module__',
+            '__package__',
+            '__weakref__',
+        ]))

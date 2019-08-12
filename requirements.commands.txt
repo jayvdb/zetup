@@ -1,2 +1,4 @@
-path.py >= 11.1 #import path
-jinjatools >= 0.1.7
+#py2 path.py ~= 11.5.0 #import path
+#py3 path.py >= 11.5.0 #import path
+jinjatools >= 0.1.11
+moretools >= 0.1.12
